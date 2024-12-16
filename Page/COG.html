@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <title>Cloud Optimized GeoTIFF (COG) Map</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            height: 100%;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            left: 0;
+        }
+
+        /* Style de la top-bar (barre supérieure) */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(152, 151, 151, 0.9);
+            color: white;
+            padding: 10px 20px;
+            font-size: 24px;
+            font-family: Arial, sans-serif;
+            z-index: 2;
+            text-align: left;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Style de la sidebar (barre latérale) */
+        .sidebar {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            width: 300px;
+            background-color: rgba(122, 121, 121, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 1;
+            max-height: calc(100vh - 60px);
+            overflow-y: hidden;
+            transition: transform 0.3s ease-in-out;
+            font-size: 14px;
+        }
+
+        .hidden {
+            transform: translateX(-300px);
+        }
+
+        /* Style des boîtes d'option */
+        .option-box {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: rgba(122, 121, 121, 0.9);
+            border-radius: 8px;
+        }
+
+        .option-box h2 {
+            color: #ededed;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .option-box p {
+            color: #ffffff;
+            font-size: 14px;
+            font-size: 12px; 
+        }
+
+        .option-box h4 {
+            margin-top: 20px;
+            color: #fffffe;
+            border-bottom: 2px solid #f9f7f5;
+            padding-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .option-box .button {
+            background-color: rgba(66, 66, 66, 0.9);
+            color: white;
+            border: none;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+
+body.light-mode .navigate-title,
+body.light-mode .option-box p {
+    color: black;
+}
+
+        .option-box .button:hover {
+            background-color: rgba(66, 66, 66, 0.9);
+        }
+    
+
+.navigate-title {
+    color: #ededed;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+        .option-box input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .modal-footer {
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .modal-footer img {
+            margin: 10px 0;
+        }
+
+        #toggle-sidebar {
+            position: absolute;
+            left: 20px;
+            top: 80px;
+            font-size: 18px;
+            z-index: 10;
+            color: white;
+            background-color: rgba(122, 121, 121, 0.9);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #close-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            background-color: rgb(122, 121, 121, 0.9); /* Couleur de fond */
+        }
+
+        .scrollable-sections {
+            max-height: 300px; /* Limite la hauteur visible */
+            overflow-y: auto;  /* Active le défilement vertical */
+            padding-right: 10px;
+        }
+
+        /* Mode clair */
+        body.light-mode .top-bar {
+            background-color: rgba(205, 204, 204, 0.9);
+            color: black;
+        }
+
+        body.light-mode .sidebar {
+            background-color: rgba(205, 204, 204, 0.9);
+            color: black;
+        }
+
+        body.light-mode .option-box {
+            background-color: rgba(205, 204, 204, 0.9);
+        }
+
+        body.light-mode h2, body.light-mode h4 {
+            color: #040404; /* Couleur orange foncée */
+        }
+
+        body.light-mode .button {
+            background-color: rgba(91, 91, 91, 0.9);
+            color: white;
+        }
+
+        body.light-mode .button:hover {
+            background-color: rgba(91, 91, 91, 0.9);
+        }
+        #close-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: rgb(7, 7, 7);
+            cursor: pointer;
+            border: none;
+            background-color: rgb(205, 204, 204, 0.9); /* Couleur de fond */
+    </style>
+</head>
+
+<body class="light-mode">
+    <!-- Top Bar -->
+    <div class="top-bar">
+       COG DATA 
+        <button id="toggle-theme" class="btn btn-default btn-sm" style="float: right; margin-top: -5px;">
+            <i id="theme-icon" class="fas fa-sun"></i>
+        </button>
+    </div>
+
+    <!-- Map -->
+    <div id="map" class="map"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar hidden">
+        <div id="close-sidebar" class="btn btn-danger">&times;</div>
+
+        <!-- Boîte principale -->
+        <div class="option-box">
+            <h2 class="navigate-title">Navigate</h2>
+            <p>
+                We have selected a few areas in Worldwide that you might be interested in exploring through geospatial data.
+            </p>
+        </div>
+
+        <!-- Conteneur avec défilement limité -->
+        <div class="scrollable-sections">
+            <!-- Options COG -->
+            <div class="option-box">
+                <h4>COG</h4>
+                <input type="text" id="cog-url" placeholder="Enter COG URL" style="width: 100%; font-size: 9px; padding: 10px;">
+
+                <button id="submit-url" class="button">Submit</button>
+                <button class="button" id="sample-1">Data 1</button>
+                <button class="button" id="sample-2">Data 2</button>
+                <button class="button" id="sample-3">Data 3</button>
+            </div>
+
+            
+        </div>
+    </div>
+
+    <!-- Icône de la base de données -->
+    <i class="fas fa-database" id="toggle-sidebar"></i>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+        <a href="http://radiant.earth">
+            <img src="https://demos.radiant.earth/assets/images/radiant_logo_2.png" width="200">
+        </a>
+        <button type="button" id="close" class="btn btn-default" data-dismiss="modal">Close</button>
+    </div>
+
+    <script src="C:/IAV/3CI/WepMapping/Dewi/Dewi/Services/COG/ol-parceljs.js"></script>
+
+    <script>
+        // Mode clair/sombre
+        document.getElementById('toggle-theme').addEventListener('click', function () {
+            var body = document.body;
+            var icon = document.getElementById('theme-icon');
+
+            body.classList.toggle('light-mode');
+
+            if (body.classList.contains('light-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                updateThemeColors('light');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                updateThemeColors('dark');
+            }
+        });
+
+        function updateThemeColors(mode) {
+            var topBar = document.querySelector('.top-bar');
+            var sidebar = document.querySelector('.sidebar');
+            
+            if (mode === 'light') {
+                topBar.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                topBar.style.color = 'black';
+                sidebar.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                sidebar.style.color = 'black';
+            } else {
+                topBar.style.backgroundColor = 'rgba(42, 42, 42, 0.9)';
+                topBar.style.color = 'white';
+                sidebar.style.backgroundColor = 'rgba(122, 121, 121, 0.9)';
+                sidebar.style.color = 'white';
+            }
+        }
+
+        // Affichage/Masquage de la sidebar
+        document.getElementById('toggle-sidebar').addEventListener('click', function () {
+            var sidebar = document.querySelector('.sidebar');
+            var icon = document.getElementById('toggle-sidebar');
+
+            sidebar.classList.toggle('hidden');
+
+            if (sidebar.classList.contains('hidden')) {
+                icon.style.display = 'block';
+            } else {
+                icon.style.display = 'none';
+            }
+        });
+
+        // Fermeture de la sidebar
+        document.getElementById('close-sidebar').addEventListener('click', function () {
+            var sidebar = document.querySelector('.sidebar');
+            var icon = document.getElementById('toggle-sidebar');
+
+            sidebar.classList.add('hidden');
+            icon.style.display = 'block';
+    
+        });
+    </script>
+</body>
+</html>
